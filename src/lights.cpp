@@ -1,14 +1,14 @@
 #include "lights.hpp"
 #include "shader.hpp"
 
-void DirectionalLight::submit(const std::unique_ptr<Shader>& shader) const {
+void DirectionalLight::submit(const std::unique_ptr<Shader>& shader, uint32_t light_index) {
     shader->setUniform("gDirectionalLight.Base.Color", color);
     shader->setUniform("gDirectionalLight.Base.AmbientIntensity", ambientIntensity);
     shader->setUniform("gDirectionalLight.Direction", glm::normalize(direction));
     shader->setUniform("gDirectionalLight.Base.DiffuseIntensity", diffuseIntensity);
 }
 
-void PointLight::submit(const std::unique_ptr<Shader>& shader, uint32_t point_light_index) const {
+void PointLight::submit(const std::unique_ptr<Shader>& shader, uint32_t point_light_index) {
     auto id = std::to_string(point_light_index);
     shader->setUniform("gPointLights[" + id + "].Base.Color", color);
     shader->setUniform("gPointLights[" + id + "].Base.AmbientIntensity", ambientIntensity);
@@ -19,7 +19,7 @@ void PointLight::submit(const std::unique_ptr<Shader>& shader, uint32_t point_li
     shader->setUniform("gPointLights[" + id + "].Atten.Exp", attenuation.exp);
 }
 
-void SpotLight::submit(const std::unique_ptr<Shader>& shader, uint32_t spot_light_index) const {
+void SpotLight::submit(const std::unique_ptr<Shader>& shader, uint32_t spot_light_index) {
     auto id = std::to_string(spot_light_index);
     shader->setUniform("gSpotLights[" + id + "].Base.Base.Color", color);
     shader->setUniform("gSpotLights[" + id + "].Base.Base.AmbientIntensity", ambientIntensity);

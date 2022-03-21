@@ -7,12 +7,11 @@
 // Game includes
 #include "camera.hpp"
 #include "shader.hpp"
-#include "model.hpp"
+#include "audio.hpp"
 #include "mesh.hpp"
 #include "lights.hpp"
 #include "textmesh.hpp"
 #include "skybox.hpp"
-#include "catmullrom.hpp"
 #include "frustum.hpp"
 
 #include <entt/entity/registry.hpp>
@@ -41,10 +40,9 @@ private:
     float dt{ 0.0 };
 
     entt::registry registry;
-    entt::entity spaceship;
-
     Camera camera;
 	Frustum frustum;
+    Audio audio;
 
 	DirectionalLight directionalLight;
     std::unique_ptr<Skybox> skybox;
@@ -54,13 +52,8 @@ private:
     std::unique_ptr<Shader> mainShader;
     std::unique_ptr<Shader> skyboxShader;
     std::unique_ptr<Shader> textShader;
-    std::unique_ptr<Shader> splineShader;
-
-    bool darkMode{ true };
-    int viewMode{ 0 };
 
 	void displayFrameRate();
-	void moveShip();
 
     friend int ::main(int argc, char** argv);
 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "model.hpp"
-
 struct TransformComponent {
     glm::vec3 translation{0.0f};
     glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
@@ -13,14 +11,6 @@ struct TransformComponent {
                * glm::mat4_cast(rotation)
                * glm::scale(m, scale);
     };
-};
-
-struct ModelComponent {
-    std::shared_ptr<Model> model;
-    float radius{ 1.0f };
-
-    std::shared_ptr<Model>& operator()() { return model; }
-    const std::shared_ptr<Model>& operator()() const { return model; }
 };
 
 struct MeshComponent {
