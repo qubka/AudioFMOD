@@ -1765,7 +1765,7 @@ namespace FMOD.Studio
         {
             return FMOD_Studio_VCA_GetVolume(this.handle, out volume, out finalvolume);
         }
-        public RESULT setVolume(float volume)
+        public RESULT changeVolume(float volume)
         {
             return FMOD_Studio_VCA_SetVolume(this.handle, volume);
         }

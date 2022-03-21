@@ -3117,7 +3117,7 @@ namespace FMOD
         {
             return FMOD5_SoundGroup_GetMuteFadeSpeed(this.handle, out speed);
         }
-        public RESULT setVolume(float volume)
+        public RESULT changeVolume(float volume)
         {
             return FMOD5_SoundGroup_SetVolume(this.handle, volume);
         }

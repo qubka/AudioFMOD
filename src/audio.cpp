@@ -1,31 +1,26 @@
 #include "audio.hpp"
 
-#include <fmod_errors.h>
-
-Audio::Audio() {}
-
-Audio::~Audio() {}
-
-bool Audio::initialise() {
+Audio::Audio() {
     // Create an FMOD system
-    result = FMOD::System_Create(&fmodSystem);
+    auto result = FMOD::System_Create(&fmodSystem);
     FmodErrorCheck(result);
     if (result != FMOD_OK)
-        return false;
+        return;
 
     // Initialise the system
     result = fmodSystem->init(32, FMOD_INIT_NORMAL, nullptr);
     FmodErrorCheck(result);
     if (result != FMOD_OK)
-        return false;
+        return;
+}
 
-    return true;
+Audio::~Audio() {
 
 }
 
 // Load an event sound
 bool Audio::loadEventSound(const std::string& filename) {
-    result = fmodSystem->createSound(filename.c_str(), FMOD_LOOP_OFF, nullptr, &eventSound);
+    auto result = fmodSystem->createSound(filename.c_str(), FMOD_LOOP_OFF, nullptr, &eventSound);
     FmodErrorCheck(result);
     if (result != FMOD_OK)
         return false;
@@ -35,17 +30,16 @@ bool Audio::loadEventSound(const std::string& filename) {
 
 // Play an event sound
 bool Audio::playEventSound() {
-    result = fmodSystem->playSound(eventSound, nullptr, false, nullptr);
+    auto result = fmodSystem->playSound(eventSound, nullptr, false, nullptr);
     FmodErrorCheck(result);
     if (result != FMOD_OK)
         return false;
     return true;
 }
 
-
 // Load a music stream
 bool Audio::loadMusicStream(const std::string& filename) {
-    result = fmodSystem->createStream(filename.c_str(), FMOD_LOOP_NORMAL, nullptr, &music);
+    auto result = fmodSystem->createStream(filename.c_str(), FMOD_LOOP_NORMAL, nullptr, &music);
     FmodErrorCheck(result);
 
     if (result != FMOD_OK)
@@ -61,13 +55,11 @@ bool Audio::loadMusicStream(const std::string& filename) {
     musicFilter->setActive(false);
 
     return true;
-
-
 }
 
 // Play a music stream
 bool Audio::playMusicStream() {
-    result = fmodSystem->playSound(music, nullptr, false, &musicChannel);
+    auto result = fmodSystem->playSound(music, nullptr, false, &musicChannel);
     FmodErrorCheck(result);
 
     if (result != FMOD_OK)
@@ -107,8 +99,8 @@ bool Audio::playMusicStream() {
 void Audio::FmodErrorCheck(FMOD_RESULT result) {
     if (result != FMOD_OK) {
         const char* errorString = FMOD_ErrorString(result);
-        // MessageBox(NULL, errorString, "FMOD Error", MB_OK);
         // Warning: error message commented out -- if headphones not plugged into computer in lab, error occurs
+        std::cerr << errorString << std::endl;
     }
 }
 
@@ -128,4 +120,24 @@ void Audio::toggleMusicFilter() {
         // you could also use m_musicFilter->setBypass(true) instead...
         musicFilter->setParameterFloat(FMOD_DSP_LOWPASS_CUTOFF, 22000);
     }
+}
+
+void Audio::changeVolume(bool increase) {
+    float vol;
+
+    auto result = musicChannel->getVolume(&vol);
+    FmodErrorCheck(result);
+
+    if (increase) {
+        if (vol < 1.0f){
+            vol += 0.1f;
+        }
+    } else {
+        if (vol > 0.0f) {
+            vol -= 0.1f;
+        }
+    }
+
+    result = musicChannel->setVolume(vol);
+    FmodErrorCheck(result);
 }

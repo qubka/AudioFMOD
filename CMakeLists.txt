@@ -16,7 +16,24 @@ add_executable(${PROJECT_NAME} ${SRC_SOURCES} ${SRC_HEADERS} ${HEADER_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC
         external
         ${OPENGL_INCLUDE_DIR}
-        )
+)
+
+find_library(
+        FMOD_LIBRARY
+        NAMES
+        fmod
+        PATHS
+        external/fmodstudioapi/core/lib/x86_64
+)
+include_directories(external/fmodstudioapi/core/inc)
+find_library(
+        FMOD_STUDIO_LIBRARY
+        NAMES
+        fmodstudio
+        PATHS
+        external/fmodstudioapi/studio/lib/x86_64
+)
+include_directories(external/fmodstudioapi/studio/inc)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         # static link
@@ -26,12 +43,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         stb
         entt
         magic_enum
-        assimp
         freetype
-        openal
+        assimp
 
         # dynamic link
         OpenGL::GL
-        )
+        ${FMOD_LIBRARY}
+        ${FMOD_STUDIO_LIBRARY}
+)
 
 target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_FILES})
