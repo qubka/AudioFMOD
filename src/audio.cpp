@@ -63,13 +63,16 @@ bool Audio::playSound(const std::string& filename) {
 FMOD_RESULT F_CALLBACK DSPCallback(FMOD_DSP_STATE* dsp_state, float* inbuffer, float* outbuffer, unsigned int length, int inchannels, int* outchannels) {
     //auto* thisdsp = reinterpret_cast<FMOD::DSP*>(dsp_state->instance);
 
-    for (unsigned int samp = 0; samp < length; samp++) {
+    float dt = 0.01f;
+
+    for (int samp = 0; samp < length; samp++) {
         for (int chan = 0; chan < *outchannels; chan++) {
             /*
                 This DSP filter just halves the volume!
                 Input is modified, and sent to output.
             */
-            outbuffer[(samp * *outchannels) + chan] = inbuffer[(samp * inchannels) + chan] * 0.2f;
+            dt += 0.01f;
+            outbuffer[(samp * *outchannels) + chan] = inbuffer[(samp * inchannels) + chan] * std::min(sinf(dt), cosf(dt));
         }
     }
 
@@ -85,42 +88,33 @@ bool Audio::loadMusicStream(const std::string& filename) {
     
     //Create the DSP effects.
     result = system->createDSPByType(FMOD_DSP_TYPE_PITCHSHIFT, &dsppitch);
-    dsppitch->setActive(false);
     FMOD_ERROR(result);
     result = system->createDSPByType(FMOD_DSP_TYPE_LOWPASS, &dsplowpass);
-    dsplowpass->setActive(false);
     FMOD_ERROR(result);
     result = system->createDSPByType(FMOD_DSP_TYPE_HIGHPASS, &dsphighpass);
-    dsphighpass->setActive(false);
     FMOD_ERROR(result);
     result = system->createDSPByType(FMOD_DSP_TYPE_ECHO, &dspecho);
-    dspecho->setActive(false);
     FMOD_ERROR(result);
     result = system->createDSPByType(FMOD_DSP_TYPE_FLANGE, &dspflange);
-    dspflange->setActive(false);
     FMOD_ERROR(result);
     result = system->createDSPByType(FMOD_DSP_TYPE_DISTORTION, &dspdistortion);
-    dspdistortion->setActive(false);
     FMOD_ERROR(result);
     result = system->createDSPByType(FMOD_DSP_TYPE_CHORUS, &dspchorus);
-    dspchorus->setActive(false);
     FMOD_ERROR(result);
     result = system->createDSPByType(FMOD_DSP_TYPE_PARAMEQ, &dspparameq);
-    dspparameq->setActive(false);
     FMOD_ERROR(result);
 
     // Create the Custom DSP effect
     {
         FMOD_DSP_DESCRIPTION dspdesc;
         memset(&dspdesc, 0, sizeof(dspdesc));
-        std::strcpy(dspdesc.name, "My first DSP unit");
+        std::strcpy(dspdesc.name, "DSP Custom Filter");
 
         dspdesc.numinputbuffers = 1;
         dspdesc.numoutputbuffers = 1;
         dspdesc.read = DSPCallback;
 
         result = system->createDSP(&dspdesc, &dspcustom);
-        dspcustom->setActive(false);
         FMOD_ERROR(result);
     }
 
@@ -287,78 +281,6 @@ void Audio::changeMusicFilter() {
             std::cout << "Reached Max Tempo" << std::endl;
         }
     }
-    else if (Input::GetKeyDown(GLFW_KEY_6)) {
-        //	Pitch Shift Down Octave
-        bool active;
-
-        result = dsppitch->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
-            result = musicChannel->removeDSP(dsppitch);
-            FMOD_ERROR(result);
-        } else {
-            result = musicChannel->addDSP(0, dsppitch);
-            FMOD_ERROR(result);
-
-            result = dsppitch->setParameterFloat(FMOD_DSP_PITCHSHIFT_PITCH, 0.5f);
-            FMOD_ERROR(result);
-        }
-    }
-    else if (Input::GetKeyDown(GLFW_KEY_7)) {
-        //	Pitch Shift Down One Note
-        bool active;
-
-        result = dsppitch->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
-            result = musicChannel->removeDSP(dsppitch);
-            FMOD_ERROR(result);
-        } else {
-            result = musicChannel->addDSP(0, dsppitch);
-            FMOD_ERROR(result);
-
-            result = dsppitch->setParameterFloat(FMOD_DSP_PITCHSHIFT_PITCH, .9438f);
-            FMOD_ERROR(result);
-        }
-    }
-    else if (Input::GetKeyDown(GLFW_KEY_8)) {
-        //	Pitch Shift Up One Note
-        bool active;
-
-        result = dsppitch->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
-            result = musicChannel->removeDSP(dsppitch);
-            FMOD_ERROR(result);
-        } else {
-            result = musicChannel->addDSP(0, dsppitch);
-            FMOD_ERROR(result);
-
-            result = dsppitch->setParameterFloat(FMOD_DSP_PITCHSHIFT_PITCH, 1.059f);
-            FMOD_ERROR(result);
-        }
-    }
-    else if (Input::GetKeyDown(GLFW_KEY_9)) {
-        //	Pitch Shift Up Octave
-        bool active;
-
-        result = dsppitch->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
-            result = musicChannel->removeDSP(dsppitch);
-            FMOD_ERROR(result);
-        } else {
-            result = musicChannel->addDSP(0, dsppitch);
-            FMOD_ERROR(result);
-
-            result = dsppitch->setParameterFloat(FMOD_DSP_PITCHSHIFT_PITCH, 2.0f);
-            FMOD_ERROR(result);
-        }
-    }
     else if (Input::GetKeyDown(GLFW_KEY_EQUAL)) {
         //	Increment Volume
         musicChannel->getVolume(&volume);
@@ -413,7 +335,7 @@ void Audio::changeMusicFilter() {
                 pitchf = std::pow(.9438f, std::abs(tempoChange + pitchCount));
             }
 
-            std::cout << "pitchf: " << pitchf << std::endl;
+            std::cout << "Pitch: " << pitchf << std::endl;
 
             result = musicChannel->removeDSP(dsppitch);
             FMOD_ERROR(result);
@@ -443,7 +365,7 @@ void Audio::changeMusicFilter() {
                 pitchf = std::pow(.9438f, std::abs(tempoChange + pitchCount));
             }
 
-            std::cout << "pitchf: " << pitchf << std::endl;
+            std::cout << "Pitch: " << pitchf << std::endl;
 
             result = musicChannel->removeDSP(dsppitch);
             FMOD_ERROR(result);
@@ -458,13 +380,9 @@ void Audio::changeMusicFilter() {
         }
     }
     else if (Input::GetKeyDown(GLFW_KEY_R)) {
-        //	Lowpass
-        bool active;
+        lowpassActive = !lowpassActive;
 
-        result = dsplowpass->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
+        if (!lowpassActive) {
             result = musicChannel->removeDSP(dsplowpass);
             FMOD_ERROR(result);
         } else {
@@ -472,16 +390,12 @@ void Audio::changeMusicFilter() {
             FMOD_ERROR(result);
         }
 
-        std::cout << "Lowpass Filter: " << (active ? "ON" : "OFF") << std::endl;
+        std::cout << "Lowpass Filter: " << (lowpassActive ? "ON" : "OFF") << std::endl;
     }
     else if (Input::GetKeyDown(GLFW_KEY_T)) {
-        // Highpass
-        bool active;
+        highpassActive = !highpassActive;
 
-        result = dsphighpass->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
+        if (!highpassActive) {
             result = musicChannel->removeDSP(dsphighpass);
             FMOD_ERROR(result);
         } else {
@@ -489,16 +403,12 @@ void Audio::changeMusicFilter() {
             FMOD_ERROR(result);
         }
 
-        std::cout << "Highpass Filter: " << (active ? "ON" : "OFF") << std::endl;
+        std::cout << "Highpass Filter: " << (highpassActive ? "ON" : "OFF") << std::endl;
     }
     else if (Input::GetKeyDown(GLFW_KEY_Y)) {
-        //	Echo
-        bool active;
+        echoActive = !echoActive;
 
-        result = dspecho->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
+        if (!echoActive) {
             result = musicChannel->removeDSP(dspecho);
             FMOD_ERROR(result);
         } else {
@@ -509,16 +419,12 @@ void Audio::changeMusicFilter() {
             FMOD_ERROR(result);
         }
 
-        std::cout << "Echo Filter: " << (active ? "ON" : "OFF") << std::endl;
+        std::cout << "Echo Filter: " << (echoActive ? "ON" : "OFF") << std::endl;
     }
     else if (Input::GetKeyDown(GLFW_KEY_U)) {
-        //	Flange
-        bool active;
+        flangeActive = !flangeActive;
 
-        result = dspflange->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
+        if (!flangeActive) {
             result = musicChannel->removeDSP(dspflange);
             FMOD_ERROR(result);
         } else {
@@ -526,16 +432,12 @@ void Audio::changeMusicFilter() {
             FMOD_ERROR(result);
         }
 
-        std::cout << "Flange Filter: " << (active ? "ON" : "OFF") << std::endl;
+        std::cout << "Flange Filter: " << (flangeActive ? "ON" : "OFF") << std::endl;
     }
     else if (Input::GetKeyDown(GLFW_KEY_I)) {
-        //	Distortion
-        bool active;
+        distortionActive = !distortionActive;
 
-        result = dspdistortion->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
+        if (!distortionActive) {
             result = musicChannel->removeDSP(dspdistortion);
             FMOD_ERROR(result);
         } else {
@@ -546,16 +448,12 @@ void Audio::changeMusicFilter() {
             FMOD_ERROR(result);
         }
 
-        std::cout << "Distortion Filter: " << (active ? "ON" : "OFF") << std::endl;
+        std::cout << "Distortion Filter: " << (distortionActive ? "ON" : "OFF") << std::endl;
     }
     else if (Input::GetKeyDown(GLFW_KEY_O)) {
-        //	Chorus
-        bool active;
+        chorusActive = !chorusActive;
 
-        result = dspchorus->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
+        if (!chorusActive) {
             result = musicChannel->removeDSP(dspchorus);
             FMOD_ERROR(result);
         } else {
@@ -563,16 +461,12 @@ void Audio::changeMusicFilter() {
             FMOD_ERROR(result);
         }
 
-        std::cout << "Chorus Filter: " << (active ? "ON" : "OFF") << std::endl;
+        std::cout << "Chorus Filter: " << (chorusActive ? "ON" : "OFF") << std::endl;
     }
     else if (Input::GetKeyDown(GLFW_KEY_P)) {
-        //	Parameq
-        bool active;
+        parameqActive = !parameqActive;
 
-        result = dspparameq->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
+        if (!parameqActive) {
             result = musicChannel->removeDSP(dspparameq);
             FMOD_ERROR(result);
         } else {
@@ -585,16 +479,12 @@ void Audio::changeMusicFilter() {
             FMOD_ERROR(result);
         }
 
-        std::cout << "Parameq Filter: " << (active ? "ON" : "OFF") << std::endl;
+        std::cout << "Parameq Filter: " << (parameqActive ? "ON" : "OFF") << std::endl;
     }
     else if (Input::GetKeyDown(GLFW_KEY_C)) {
-        //	Custom
-        bool active;
+        customActive = !customActive;
 
-        result = dspcustom->getActive(&active);
-        FMOD_ERROR(result);
-
-        if (active) {
+        if (!customActive) {
             result = musicChannel->removeDSP(dspcustom);
             FMOD_ERROR(result);
         } else {
@@ -602,6 +492,6 @@ void Audio::changeMusicFilter() {
             FMOD_ERROR(result);
         }
 
-        std::cout << "Custom Filter: " << (active ? "ON" : "OFF") << std::endl;
+        std::cout << "Custom Filter: " << (customActive ? "ON" : "OFF") << std::endl;
     }
 }

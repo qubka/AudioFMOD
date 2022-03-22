@@ -24,15 +24,25 @@ private:
     FMOD::System* system;
 
     FMOD::Sound* music;
+
     FMOD::DSP* dsppitch;
+
     FMOD::DSP* dsplowpass;
+    bool lowpassActive{ false };
     FMOD::DSP* dsphighpass;
+    bool highpassActive{ false };
     FMOD::DSP* dspecho;
+    bool echoActive{ false };
     FMOD::DSP* dspflange;
+    bool flangeActive{ false };
     FMOD::DSP* dspdistortion;
+    bool distortionActive{ false };
     FMOD::DSP* dspchorus;
+    bool chorusActive{ false };
     FMOD::DSP* dspparameq;
+    bool parameqActive{ false };
     FMOD::DSP* dspcustom;
+    bool customActive{ false };
 
     float pan{ 0.0f };
     float volume;

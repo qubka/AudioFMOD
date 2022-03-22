@@ -237,10 +237,6 @@ void Game::render() {
     textMesh->render(font, "Press ']' to pan sound right", 20, 100, 1);
     textMesh->render(font, "Press '+' to increase volume", 20, 120, 1);
     textMesh->render(font, "Press '-' to decrease volume", 20, 140, 1);
-    textMesh->render(font, "Press '6' pitch octave down", 20, 160, 1);
-    textMesh->render(font, "Press '7' pitch semitone down", 20, 180, 1);
-    textMesh->render(font, "Press '8' pitch semitone up", 20, 200, 1);
-    textMesh->render(font, "Press '9' pitch octave up", 20, 220, 1);
     textMesh->render(font, "Press 'n' pitch scale down", 20, 240, 1);
     textMesh->render(font, "Press 'm' pitch scale up", 20, 260, 1);
     textMesh->render(font, "Press 'q' to pause audio", 20, 280, 1);
