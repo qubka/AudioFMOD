@@ -13,6 +13,7 @@
 #include "textmesh.hpp"
 #include "skybox.hpp"
 #include "frustum.hpp"
+#include "catmullrom.hpp"
 
 #include <entt/entity/registry.hpp>
 
@@ -40,9 +41,12 @@ private:
     float dt{ 0.0 };
 
     entt::registry registry;
-    Camera camera;
-	Frustum frustum;
+    entt::entity spaceship;
+
     Audio audio;
+    Camera camera;
+    Frustum frustum;
+    CatmullRom catmullRom;
 
 	DirectionalLight directionalLight;
     std::unique_ptr<Skybox> skybox;
@@ -54,6 +58,7 @@ private:
     std::unique_ptr<Shader> textShader;
 
 	void displayFrameRate();
+    void moveShip();
 
     friend int ::main(int argc, char** argv);
 

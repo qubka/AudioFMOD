@@ -1,7 +1,8 @@
 #pragma once
 
 #include <assimp/types.h>
-#include "glm/detail/setup.hpp"
+
+class FMOD_VECTOR;
 
 namespace glm {
     GLM_INLINE glm::vec3 vec3_cast(const aiVector3D& v) { return {v.x, v.y, v.z}; }
@@ -11,6 +12,7 @@ namespace glm {
     GLM_INLINE glm::mat4 mat4_cast(const aiMatrix4x4& m) { return glm::transpose(glm::make_mat4(&m.a1)); }
     GLM_INLINE glm::mat4 mat4_cast(const aiMatrix3x3& m) { return glm::transpose(glm::make_mat3(&m.a1)); }
 
+    GLM_INLINE const FMOD_VECTOR* fmod_vector(const glm::vec3& v) { return reinterpret_cast<const FMOD_VECTOR*>(&v); }
 }
 
 namespace vec3 {

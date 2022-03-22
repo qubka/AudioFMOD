@@ -3,7 +3,7 @@
 #include "input.hpp"
 
 // Constructor for camera -- initialise with some default values
-Camera::Camera() : position{0.0f, 10.0f, 100.0f}, speed{50.0f} {
+Camera::Camera() : position{0.0f, 50.0f, 100.0f}, speed{50.0f} {
 }
 
 // Update the camera to respond to mouse motion for rotations and keyboard for translation
@@ -35,6 +35,8 @@ void Camera::setViewByMouse() {
 
 // Update the camera to respond to key presses for translation
 void Camera::translateByKeyboard(float dt) {
+    glm::vec3 lastPos{ position };
+
     if (Input::GetKey(GLFW_KEY_W) || Input::GetKey(GLFW_KEY_UP))
         position += getForwardVector() * speed * dt;
 
@@ -46,6 +48,8 @@ void Camera::translateByKeyboard(float dt) {
 
     if (Input::GetKey(GLFW_KEY_A) || Input::GetKey(GLFW_KEY_LEFT))
         position -= getRightVector() * speed * dt;
+
+    velocity = (position - lastPos) * 1000.0f / dt;
 }
 
 // Return the camera view

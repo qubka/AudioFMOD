@@ -13,12 +13,22 @@ struct TransformComponent {
     };
 };
 
+class Mesh;
 struct MeshComponent {
     std::shared_ptr<Mesh> mesh;
     float radius{ 1.0f };
 
     std::shared_ptr<Mesh>& operator()() { return mesh; }
     const std::shared_ptr<Mesh>& operator()() const { return mesh; }
+};
+
+class Model;
+struct ModelComponent {
+    std::shared_ptr<Model> model;
+    float radius{ 1.0f };
+
+    std::shared_ptr<Model>& operator()() { return model; }
+    const std::shared_ptr<Model>& operator()() const { return model; }
 };
 
 struct ShipComponent {
