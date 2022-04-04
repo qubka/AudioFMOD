@@ -227,7 +227,7 @@ bool Audio::changeMusicFilter() {
             } else if (pitchf > 1.0f) {
                 pitchf = std::pow(1.059f, std::abs(tempoChange + pitchCount));
             } else if (pitchf < 1.0f) {
-                pitchf = std::pow(.9438f, std::abs(tempoChange + pitchCount));
+                pitchf = std::pow(0.9438f, std::abs(tempoChange + pitchCount));
             }
 
             std::cout << "Pitch: " << pitchf << std::endl;
@@ -271,7 +271,7 @@ bool Audio::changeMusicFilter() {
                 pitchf = std::pow(1.059f, std::abs(tempoChange + pitchCount));
             } else if (pitchf < 1.0f) {
                 std::cout << "tempo dec" << std::endl;
-                pitchf = std::pow(.9438f, std::abs(tempoChange + pitchCount));
+                pitchf = std::pow(0.9438f, std::abs(tempoChange + pitchCount));
             }
 
             std::cout << "Pitch: " << pitchf << std::endl;
@@ -370,7 +370,7 @@ bool Audio::changeMusicFilter() {
             } else if (pitchf > 1.0f) {
                 pitchf = std::pow(1.059f, tempoChange + pitchCount);
             } else if (pitchf < 1.0f) {
-                pitchf = std::pow(.9438f, std::abs(tempoChange + pitchCount));
+                pitchf = std::pow(0.9438f, std::abs(tempoChange + pitchCount));
             }
 
             std::cout << "Pitch: " << pitchf << std::endl;
@@ -400,7 +400,7 @@ bool Audio::changeMusicFilter() {
             } else if (pitchf > 1.0f) {
                 pitchf = std::pow(1.059f, tempoChange + pitchCount);
             } else if (pitchf < 1.0f) {
-                pitchf = std::pow(.9438f, std::abs(tempoChange + pitchCount));
+                pitchf = std::pow(0.9438f, std::abs(tempoChange + pitchCount));
             }
 
             std::cout << "Pitch: " << pitchf << std::endl;
