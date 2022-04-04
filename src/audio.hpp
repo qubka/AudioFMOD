@@ -8,22 +8,30 @@ public:
     Audio();
     ~Audio();
 
-    bool loadSound(const std::string& filename, bool looped, bool spatial);
-    bool playSound(const std::string& filename);
-    //bool playSound3D(const std::string& filename, const glm::vec3& pos, float volume);
+    bool loadSound(const std::string& filename);
+    bool playSound(const glm::vec3& position, float volume = 1.0f);
+    bool toggleSound();
+    bool setSoundPositionAndVelocity(const glm::vec3& position, const glm::vec3& velocity);
 
     bool loadMusicStream(const std::string& filename);
     bool playMusicStream();
+    bool toggleMusicStream();
+
+    bool changeMusicFilter();
+    bool createGeometry(const glm::vec2& extent, const glm::vec3& position, const glm::quat& rotation);
 
     void update(const glm::vec3& position, const glm::vec3& velocity, const glm::vec3& forward, const glm::vec3& up);
-
-    void changeMusicFilter();
 
     static float filterValue;
 
 private:
     FMOD::System* system;
-    FMOD::Sound* music;
+
+    FMOD::Sound* musicSound;
+    FMOD::Channel* musicChannel;
+
+    FMOD::Sound* spatialSound;
+    FMOD::Channel* soundChannel;
 
     FMOD::DSP* dsppitch;
     FMOD::DSP* dsplowpass;
@@ -34,6 +42,8 @@ private:
     FMOD::DSP* dspchorus;
     FMOD::DSP* dspparameq;
     FMOD::DSP* dspcustom;
+
+    FMOD::Geometry* geometry;
 
     bool lowpassActive{ false };
     bool highpassActive{ false };
@@ -54,11 +64,4 @@ private:
     int tempoChange{ 0 };
     float speed;
     float pitch{ 1 };
-
-    FMOD::Channel* musicChannel;
-    FMOD::DSP* musicDSPHead;
-    FMOD::DSP* musicDSPHeadInput;
-
-    std::unordered_map<std::string, FMOD::Sound*> sounds;
-    FMOD::Channel* soundChannel;
 };

@@ -44,7 +44,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         entt
         magic_enum
         freetype
-        assimp
 
         # dynamic link
         OpenGL::GL

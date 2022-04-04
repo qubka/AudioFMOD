@@ -3,8 +3,6 @@
 #include "components.hpp"
 #include "texture.hpp"
 #include "geometry.hpp"
-#include "extentions.hpp"
-#include "model.hpp"
 
 // Constructor
 Game::Game() : window{ "OpenGL Template", { 1280, 720 }} {
@@ -31,15 +29,14 @@ void Game::init() {
     glCall(glPixelStorei, GL_UNPACK_ALIGNMENT, 4);
     glCall(glPointSize, 7.0f);
 
+    glm::vec3 cubePosition{ 0.0f, 5.0f, 0.0f };
+
     // Initialise audio and play background music
     //audio.loadEventSound("resources/audio/Horse.wav");
+    audio.loadSound("resources/audio/Monkeys-Spinning-Monkeys.mp3");
+    audio.playSound(cubePosition);
     audio.loadMusicStream("resources/audio/fsm-team-escp-paradox.wav");
     audio.playMusicStream();
-
-    //audio.loadSound("resources/audio/fsm-team-escp-paradox.wav", true, true);
-    //audio.playSound3D("resources/audio/fsm-team-escp-paradox.wav", glm::vec3{0, 0, 0}, 1.0f);
-
-    //audio.playMusicStream();
 
     mainShader = std::make_unique<Shader>();
     mainShader->link("resources/shaders/mainShader.vert", "resources/shaders/mainShader.frag");
@@ -64,47 +61,25 @@ void Game::init() {
 
     directionalLight.submit(mainShader);
 
-
     // Generate path for pipe
-
-    std::vector<glm::vec3> points {
-        { 20, 0, 0 },
-        { 12, 5, 12 },
-        { 0, 10, 20 },
-        { -12, 20, 12 },
-        { -20, 12, 0 },
-        { -12, 10, -12 },
-        { 0, 5, -20 },
-        { 12, 0, -12 }
-    };
-
-    catmullRom.uniformlySampleControlPoints(std::move(points), 500);
 
     // Create entities
 
-    glm::vec3& initial = catmullRom.getCentrelinePoints()[0];
-    glm::vec3& direction = catmullRom.getCentrelineNormals()[0];
-
-    spaceship = registry.create();
-    registry.emplace<TransformComponent>(spaceship, initial, glm::quat{1, 0, 0, 0}, glm::vec3{1.0f});
-    registry.emplace<ModelComponent>(spaceship, Model::Load("resources/models/Ship/SpaceShip_final.fbx"));
-    registry.emplace<ShipComponent>(spaceship);
-    auto& spotLight = registry.emplace<SpotLight>(spaceship);
-    spotLight.position = initial + direction * 5.0f;
-    spotLight.color = glm::vec3{ 1.0f, 0.0f, 0.0f };
-    spotLight.ambientIntensity = 90.0f;
-    spotLight.diffuseIntensity = 90.0f;
-    spotLight.direction = direction;
-    spotLight.cutoff = 0.9f;
-    auto& pointLight = registry.emplace<PointLight>(spaceship);
-    pointLight.position = initial - direction * 10.0f;
-    pointLight.color = glm::vec3{ 0.17f, 1.0f, 0.025f };
-    pointLight.ambientIntensity = 0.25f;
-    pointLight.diffuseIntensity = 0.6f;
-
     auto entity = registry.create();
     registry.emplace<TransformComponent>(entity, glm::vec3{0}, glm::quat{glm::vec3{glm::radians(-90.0), 0.0, 0.0}}, glm::vec3{1000.0f, 1000.0f, 1.0f});
-    registry.emplace<MeshComponent>(entity, geometry::quad({ 1.0f, 1.0f }, std::make_shared<Texture>("resources/textures/terrain.jpg", false, false, glm::vec3{100})));
+    registry.emplace<MeshComponent>(entity, geometry::quad({ 1.0f, 1.0f }, std::make_shared<Texture>("resources/textures/terrain.jpg", true, false, glm::vec3{100})));
+
+    glm::vec3 scale{50.0f, 10.0f, 0.01f};
+
+    entity = registry.create();
+    registry.emplace<TransformComponent>(entity, glm::vec3{0.0f, 0.0f, -10.0f}, glm::quat{1, 0, 0, 0}, scale);
+    registry.emplace<MeshComponent>(entity, geometry::cuboid({ 1.0f, 1.0f, 1.0f }, false, std::make_shared<Texture>("resources/textures/Dirt.png", true, false, glm::vec3{10, 1, 1})));
+
+    audio.createGeometry(scale, glm::vec3{0.0f, 0.0f, -10.0f}, glm::quat{1, 0, 0, 0});
+
+    cube = registry.create();
+    registry.emplace<TransformComponent>(cube, cubePosition);
+    registry.emplace<MeshComponent>(cube, geometry::cuboid({ 1.0f, 1.0f, 1.0f }, false, std::make_shared<Texture>(200, 0, 200)));
 
     //////////////////////////////////////////////////////////////
 
@@ -160,9 +135,9 @@ void Game::render() {
     // Render scene
     frustum.update(viewProjMatrix);
 
-    auto group = registry.group<TransformComponent>(entt::get<ModelComponent>);
+    auto group = registry.group<TransformComponent>(entt::get<MeshComponent>);
     for (auto entity : group) {
-        auto [transform, model] = group.get<TransformComponent, ModelComponent>(entity);
+        auto [transform, model] = group.get<TransformComponent, MeshComponent>(entity);
 
         if (frustum.checkSphere(transform.translation, model.radius * glm::max(transform.scale.x, transform.scale.y, transform.scale.z))) {
             glm::mat4 transformMatrix{ transform };
@@ -171,18 +146,6 @@ void Game::render() {
             mainShader->setUniform("u_transform", transformMatrix);
             mainShader->setUniform("u_normal", normalMatrix);
             model()->render(mainShader);
-        }
-    }
-
-    auto meshes = registry.view<const TransformComponent, const MeshComponent>();
-    for (auto [entity, transform, mesh] : meshes.each()) {
-        if (frustum.checkSphere(transform.translation, mesh.radius * glm::max(transform.scale.x, transform.scale.y, transform.scale.z))) {
-            glm::mat4 transformMatrix{ transform };
-            glm::mat3 normalMatrix{ glm::transpose(glm::inverse(glm::mat3{ transformMatrix })) };
-
-            mainShader->setUniform("u_transform", transformMatrix);
-            mainShader->setUniform("u_normal", normalMatrix);
-            mesh()->render(mainShader);
         }
     }
 
@@ -233,26 +196,38 @@ void Game::render() {
     textMesh->render(font, "Press '1' to play left speaker only", 20, 20, 1);
     textMesh->render(font, "Press '2' to play right speaker only", 20, 40, 1);
     textMesh->render(font, "Press '3' to play from both speakers", 20, 60, 1);
-    textMesh->render(font, "Press '[' to pan sound left", 20, 80, 1);
-    textMesh->render(font, "Press ']' to pan sound right", 20, 100, 1);
+
+    textMesh->render(font, "Press '4' to decrmenent tempo", 20, 80, 1);
+    textMesh->render(font, "Press '5' to incrmenent tempo", 20, 100, 1);
     textMesh->render(font, "Press '+' to increase volume", 20, 120, 1);
     textMesh->render(font, "Press '-' to decrease volume", 20, 140, 1);
     textMesh->render(font, "Press 'n' pitch scale down", 20, 240, 1);
     textMesh->render(font, "Press 'm' pitch scale up", 20, 260, 1);
     textMesh->render(font, "Press 'q' to pause audio", 20, 280, 1);
+    textMesh->render(font, "Press '[' to pan sound left", 20, 300, 1);
+    textMesh->render(font, "Press ']' to pan sound right", 20, 320, 1);
 
-    textMesh->render(font, "Press 'r' to switch Lowpass filter", 20, 300, 1);
-    textMesh->render(font, "Press 't' to switch Highpass filter", 20, 320, 1);
-    textMesh->render(font, "Press 'y' to switch Echo filter", 20, 340, 1);
-    textMesh->render(font, "Press 'u' to switch Flange filter", 20, 360, 1);
-    textMesh->render(font, "Press 'i' to switch Distortion filter", 20, 380, 1);
-    textMesh->render(font, "Press 'o' to switch Chorus filter", 20, 400, 1);
-    textMesh->render(font, "Press 'p' to switch Parameq filter", 20, 420, 1);
-    textMesh->render(font, "Press 'c' to switch Custom filter", 20, 440, 1);
+    textMesh->render(font, "Press 'r' to switch Lowpass filter", 20, 340, 1);
+    textMesh->render(font, "Press 't' to switch Highpass filter", 20, 360, 1);
+    textMesh->render(font, "Press 'y' to switch Echo filter", 20, 380, 1);
+    textMesh->render(font, "Press 'u' to switch Flange filter", 20, 400, 1);
+    textMesh->render(font, "Press 'i' to switch Distortion filter", 20, 420, 1);
+    textMesh->render(font, "Press 'o' to switch Chorus filter", 20, 440, 1);
+    textMesh->render(font, "Press 'p' to switch Parameq filter", 20, 460, 1);
 
-    textMesh->render(font, "Press 'F1' to enable wiremode renderer", 20, 460, 1);
-    textMesh->render(font, "Press 'TAB' to lock mouse and use camera", 20, 480, 1);
-    textMesh->render(font, "Press 'ESC' to exit", 20, 500, 1);
+    textMesh->render(font, "Press 'c' to switch Custom filter", 20, 500, 1);
+    textMesh->render(font, "Press 'NUM +' to increase Filter filter value", 20, 520, 1);
+    textMesh->render(font, "Press 'NUM -' to decrease Filter filter value", 20, 540, 1);
+
+    textMesh->render(font, "Press 'F1' to enable wiremode renderer", 20, 580, 1);
+    textMesh->render(font, "Press 'TAB' to lock mouse and use camera", 20, 600, 1);
+    textMesh->render(font, "Press 'ESC' to exit", 20, 620, 1);
+
+    float x = window.getWidth() / 3;
+
+    textMesh->render(font, "Press '6' to toggle music", x, 60, 1);
+    textMesh->render(font, "Press '7' to toggle 3d sound", x, 40, 1);
+    textMesh->render(font, "Press '7' to toggle 3d sound", x, 40, 1);
 
     textMesh->render(font, "Time: " + std::to_string(glfwGetTime()), window.getWidth() / 2 + 150.0f, 20, 1);
 
@@ -266,6 +241,8 @@ void Game::update() {
     camera.setOrthographicProjectionMatrix(window.getWidth(), window.getHeight());
     camera.setPerspectiveProjectionMatrix(45.0f, window.getAspect(), 0.01f, 5000.0f);
 
+    camera.update(dt);
+
     if (Input::GetKeyDown(GLFW_KEY_ESCAPE))
         window.shouldClose(true);
 
@@ -275,9 +252,20 @@ void Game::update() {
     if (Input::GetKeyDown(GLFW_KEY_F1))
         window.toggleWireframe();
 
-    moveShip();
+    auto& transform = registry.get<TransformComponent>(cube);
 
-    camera.update(dt);
+    glm::vec3 lastPos{ transform.translation };
+
+    if (Input::GetKey(GLFW_KEY_UP))
+        transform.translation += transform.rotation * vec3::forward * 10.0f * dt;
+    if (Input::GetKey(GLFW_KEY_DOWN))
+        transform.translation -= transform.rotation * vec3::forward * 10.0f * dt;
+    if (Input::GetKey(GLFW_KEY_RIGHT))
+        transform.translation += transform.rotation * vec3::right * 10.0f * dt;
+    if (Input::GetKey(GLFW_KEY_LEFT))
+        transform.translation -= transform.rotation * vec3::right * 10.0f * dt;
+
+    audio.setSoundPositionAndVelocity(transform.translation, (transform.translation - lastPos) * dt);
 
     audio.update(camera.getPosition(), camera.getPosition(), camera.getForwardVector(), camera.getUpVector());
 }
@@ -301,35 +289,6 @@ void Game::displayFrameRate() {
     if (framesPerSecond > 0) {
         textMesh->render(font, "FPS: " + std::to_string(framesPerSecond), 20, window.getHeight() - 30, 1.0f);
     }
-}
-
-void Game::moveShip() {
-    auto& transform = registry.get<TransformComponent>(spaceship);
-    auto& ship = registry.get<ShipComponent>(spaceship);
-    auto& spotLight= registry.get<SpotLight>(spaceship);
-    auto& pointLight = registry.get<PointLight>(spaceship);
-
-    auto& points = catmullRom.getControlPoints();
-    auto& normals = catmullRom.getCentrelineNormals();
-
-    auto& current = transform.translation;
-    auto& target = points[ship.path];
-    auto& direction = normals[ship.path];
-
-    if (glm::distance(current, target) < 0.1f) {
-        ship.path += 1;
-        if (ship.path >= points.size()) {
-            ship.path = 0;
-        }
-    }
-    glm::vec3 lastPos{ transform.translation };
-
-    transform.translation = glm::smoothDamp(transform.translation, target, ship.velocity, 0.01f, ship.maxSpeed, dt);
-    transform.rotation = glm::quatLookAt(direction, vec3::up);
-
-    spotLight.position = transform.translation + direction * 5.0f;
-    spotLight.direction = direction;
-    pointLight.position = transform.translation - direction * 10.0f;
 }
 
 // The game loop runs repeatedly until game over

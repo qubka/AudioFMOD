@@ -41,12 +41,11 @@ private:
     float dt{ 0.0 };
 
     entt::registry registry;
-    entt::entity spaceship;
+    entt::entity cube;
 
     Audio audio;
     Camera camera;
     Frustum frustum;
-    CatmullRom catmullRom;
 
 	DirectionalLight directionalLight;
     std::unique_ptr<Skybox> skybox;
@@ -58,7 +57,6 @@ private:
     std::unique_ptr<Shader> textShader;
 
 	void displayFrameRate();
-    void moveShip();
 
     friend int ::main(int argc, char** argv);
 

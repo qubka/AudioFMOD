@@ -37,19 +37,19 @@ void Camera::setViewByMouse() {
 void Camera::translateByKeyboard(float dt) {
     glm::vec3 lastPos{ position };
 
-    if (Input::GetKey(GLFW_KEY_W) || Input::GetKey(GLFW_KEY_UP))
+    if (Input::GetKey(GLFW_KEY_W))
         position += getForwardVector() * speed * dt;
 
-    if (Input::GetKey(GLFW_KEY_S) || Input::GetKey(GLFW_KEY_DOWN))
+    if (Input::GetKey(GLFW_KEY_S))
         position -= getForwardVector() * speed * dt;
 
-    if (Input::GetKey(GLFW_KEY_D) || Input::GetKey(GLFW_KEY_RIGHT))
+    if (Input::GetKey(GLFW_KEY_D))
         position += getRightVector() * speed * dt;
 
-    if (Input::GetKey(GLFW_KEY_A) || Input::GetKey(GLFW_KEY_LEFT))
+    if (Input::GetKey(GLFW_KEY_A) )
         position -= getRightVector() * speed * dt;
 
-    velocity = (position - lastPos) * 1000.0f / dt;
+    velocity = (position - lastPos) * dt;
 }
 
 // Return the camera view

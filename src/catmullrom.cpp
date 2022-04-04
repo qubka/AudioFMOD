@@ -1,5 +1,4 @@
 #include "catmullrom.hpp"
-#include "opengl.hpp"
 #include "common.hpp"
 
 CatmullRom::CatmullRom() {

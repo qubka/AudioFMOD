@@ -2,66 +2,83 @@
 #include "common.hpp"
 #include "input.hpp"
 
-#define FMOD_ERROR(result) if (result != FMOD_OK) std::cerr << "***ERROR*** (" << __FILE__ << ": " << __LINE__ << ") " << FMOD_ErrorString(result) << std::endl;
+#define FMOD_ERROR_(result) if (result != FMOD_OK) { std::cerr << "***ERROR*** (" << __FILE__ << ": " << __LINE__ << ") " << FMOD_ErrorString(result) << std::endl; return; }
+#define FMOD_ERROR(result) if (result != FMOD_OK) { std::cerr << "***ERROR*** (" << __FILE__ << ": " << __LINE__ << ") " << FMOD_ErrorString(result) << std::endl; return false; }
 
 float Audio::filterValue{ 0.0f };
 
 Audio::Audio() {
     // Create an FMOD system
     auto result = FMOD::System_Create(&system);
-    FMOD_ERROR(result);
-    if (result != FMOD_OK)
-        return;
+    FMOD_ERROR_(result);
 
     // Initialise the system
     result = system->init(32, FMOD_INIT_NORMAL, nullptr);
-    FMOD_ERROR(result);
-    if (result != FMOD_OK)
-        return;
+    FMOD_ERROR_(result);
+
+    // Set 3D settings
+    result = system->set3DSettings(1.0f, 1.0f, 1.0f);
+    FMOD_ERROR_(result);
 }
 
 Audio::~Audio() {
-
 }
 
 void Audio::update(const glm::vec3& position, const glm::vec3& velocity, const glm::vec3& forward, const glm::vec3& up) {
     changeMusicFilter();
 
-    system->set3DListenerAttributes(0, glm::fmod_vector(position), glm::fmod_vector(velocity), glm::fmod_vector(forward), glm::fmod_vector(up));
-    system->update();
+    // Update listener position in the world
+    auto result = system->set3DListenerAttributes(0, glm::fmod_vector(position), glm::fmod_vector(velocity), glm::fmod_vector(forward), glm::fmod_vector(up));
+    FMOD_ERROR_(result);
+    // Update fmod system
+    result = system->update();
+    FMOD_ERROR_(result);
 }
 
-bool Audio::loadSound(const std::string& filename, bool looped, bool spatial) {
-    if (sounds.find(filename) != sounds.end())
-        return false;
-
-    FMOD::Sound* sound;
-    auto type = spatial ? FMOD_3D : FMOD_2D;
-    auto loop = looped ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF;
-    auto result = system->createSound(filename.c_str(), type | loop, nullptr, &sound);
+bool Audio::loadSound(const std::string& filename) {
+    // Load an event sound
+    auto result = system->createSound(filename.c_str(), FMOD_3D | FMOD_LOOP_NORMAL, nullptr, &spatialSound);
     FMOD_ERROR(result);
-    if (result != FMOD_OK)
-        return false;
+    return true;
+}
 
-    sounds.emplace(filename, sound);
+bool Audio::playSound(const glm::vec3& position, float volume) {
+    // Play an event sound
+    auto result = system->playSound(spatialSound, nullptr, false, &soundChannel);
+    FMOD_ERROR(result);
+    result = soundChannel->setVolumeRamp(false);
+    FMOD_ERROR(result);
+    result = soundChannel->set3DAttributes(glm::fmod_vector(position), glm::fmod_vector(glm::vec3{0}));
+    FMOD_ERROR(result);
+    result = soundChannel->setPaused(true);
+    FMOD_ERROR(result);
+    result = soundChannel->setVolume(volume);
+    FMOD_ERROR(result);
 
     return true;
 }
 
-bool Audio::playSound(const std::string& filename) {
-    auto sound = sounds.find(filename);
-    if (sound == sounds.end())
-        return false;
+bool Audio::toggleSound() {
+    bool paused;
 
-    auto result = system->playSound(sound->second, nullptr, false, nullptr);
+    auto result = soundChannel->getPaused(&paused);
     FMOD_ERROR(result);
-    if (result != FMOD_OK)
-        return false;
+
+    paused = !paused;
+
+    result = soundChannel->setPaused(paused);
+    FMOD_ERROR(result);
 
     return true;
 }
 
-// DSP callback
+bool Audio::setSoundPositionAndVelocity(const glm::vec3& position, const glm::vec3& velocity) {
+    auto result = soundChannel->set3DAttributes(glm::fmod_vector(position), glm::fmod_vector(velocity));
+    FMOD_ERROR(result);
+
+    return true;
+}
+
 FMOD_RESULT F_CALLBACK DSPCallback(FMOD_DSP_STATE* dsp_state, float* inbuffer, float* outbuffer, unsigned int length, int inchannels, int* outchannels) {
     //auto dsp = reinterpret_cast<FMOD::DSP *>(dsp_state->instance);
 
@@ -88,7 +105,7 @@ FMOD_RESULT F_CALLBACK DSPCallback(FMOD_DSP_STATE* dsp_state, float* inbuffer, f
         for (int chan = 0; chan < *outchannels; chan++) {
             /*
                 This DSP filter just halves the volume!
-                Input is modified, and sent to output.
+                Input is modified by filter value, and sent to output.
             */
             outbuffer[(samp * *outchannels) + chan] = inbuffer[(samp * inchannels) + chan] * Audio::filterValue;
         }
@@ -98,12 +115,10 @@ FMOD_RESULT F_CALLBACK DSPCallback(FMOD_DSP_STATE* dsp_state, float* inbuffer, f
 }
 
 bool Audio::loadMusicStream(const std::string& filename) {
-    auto result = system->createStream(filename.c_str(), FMOD_LOOP_NORMAL, nullptr, &music);
+    // Load a music sound
+    auto result = system->createStream(filename.c_str(), FMOD_LOOP_NORMAL, nullptr, &musicSound);
     FMOD_ERROR(result);
 
-    if (result != FMOD_OK)
-        return false;
-    
     //Create the DSP effects.
     result = system->createDSPByType(FMOD_DSP_TYPE_PITCHSHIFT, &dsppitch);
     FMOD_ERROR(result);
@@ -123,59 +138,44 @@ bool Audio::loadMusicStream(const std::string& filename) {
     FMOD_ERROR(result);
 
     // Create the Custom DSP effect
-    {
-        FMOD_DSP_DESCRIPTION dspdesc;
-        memset(&dspdesc, 0, sizeof(dspdesc));
-        std::strcpy(dspdesc.name, "DSP Custom Filter");
+    FMOD_DSP_DESCRIPTION dspdesc;
+    memset(&dspdesc, 0, sizeof(dspdesc));
+    std::strcpy(dspdesc.name, "DSP Custom Filter");
 
-        dspdesc.numinputbuffers = 1;
-        dspdesc.numoutputbuffers = 1;
-        dspdesc.read = DSPCallback;
-        //dspdesc.userdata = &filterValue;
+    dspdesc.numinputbuffers = 1;
+    dspdesc.numoutputbuffers = 1;
+    dspdesc.read = DSPCallback;
+    //dspdesc.userdata = &filterValue; // TODO: not work!
 
-        result = system->createDSP(&dspdesc, &dspcustom);
-        FMOD_ERROR(result);
-    }
-
-    if (result != FMOD_OK)
-        return false;
+    result = system->createDSP(&dspdesc, &dspcustom);
+    FMOD_ERROR(result);
 
     return true;
 }
 
 bool Audio::playMusicStream() {
-    auto result = system->playSound(music, nullptr, false, &musicChannel);
+    // Play a music sound
+    auto result = system->playSound(musicSound, nullptr, false, &musicChannel);
     FMOD_ERROR(result);
-
-    if (result != FMOD_OK)
-        return false;
 
     return true;
 }
 
-/*bool Audio::playSound3D(const std::string& filename, const glm::vec3& pos, float volume) {
-    auto sound = sounds.find(filename);
-    if (sound == sounds.end())
-        return false;
+bool Audio::toggleMusicStream() {
+    bool paused;
 
-    auto result = fmodSystem->playSound(sound->second, nullptr, false, &soundChannel);
-    FmodErrorCheck(result);
-    result = soundChannel->setVolumeRamp(false); // For fixing popping noise at low volume.
-    FmodErrorCheck(result);
-    result = soundChannel->set3DAttributes(glm::fmod_vector(pos), glm::fmod_vector(glm::vec3{0}));
-    FmodErrorCheck(result);
-    result = soundChannel->setPaused(false);
-    FmodErrorCheck(result);
-    result = soundChannel->setVolume(volume);
-    FmodErrorCheck(result);
+    auto result = musicChannel->getPaused(&paused);
+    FMOD_ERROR(result);
 
-    if (result != FMOD_OK)
-        return false;
+    paused = !paused;
+
+    result = musicChannel->setPaused(paused);
+    FMOD_ERROR(result);
 
     return true;
-}*/
+}
 
-void Audio::changeMusicFilter() {
+bool Audio::changeMusicFilter() {
     FMOD_RESULT result;
     
     if (Input::GetKeyDown(GLFW_KEY_Q)) {
@@ -191,20 +191,23 @@ void Audio::changeMusicFilter() {
     }
     else if (Input::GetKeyDown(GLFW_KEY_1)) {
         //	Play Sound From Left Speakers
-        musicChannel->getVolume(&volume);
+        result = musicChannel->getVolume(&volume);
+        FMOD_ERROR(result);
         result = musicChannel->setMixLevelsOutput(1, 0, 0, 0, 0, 0, 0, 0);
         FMOD_ERROR(result);
     }
     else if (Input::GetKeyDown(GLFW_KEY_2)) {
         //	Play Sound From Right Speakers
-        musicChannel->getVolume(&volume);
+        result = musicChannel->getVolume(&volume);
+        FMOD_ERROR(result);
         std::cout << "Volume: " << volume << std::endl;
         result = musicChannel->setMixLevelsOutput(0, 1, 0, 0, 0, 0, 0, 0);
         FMOD_ERROR(result);
     }
     else if (Input::GetKeyDown(GLFW_KEY_3)) {
         //	Play Sound From Both Speakers
-        musicChannel->getVolume(&volume);
+        result = musicChannel->getVolume(&volume);
+        FMOD_ERROR(result);
         result = musicChannel->setMixLevelsOutput(1, 1, 0, 0, 0, 0, 0, 0);
         FMOD_ERROR(result);
     }
@@ -218,7 +221,8 @@ void Audio::changeMusicFilter() {
             std::cout << "Pitch Count: " << pitchCount << std::endl;
             std::cout << "Tempo Count: " << tempoChange << std::endl;
 
-            musicChannel->getFrequency(&frequency);
+            result = musicChannel->getFrequency(&frequency);
+            FMOD_ERROR(result);
             std::cout << "Z Initial Frequency: " << frequency << std::endl;
 
             float base = 2.0f;
@@ -239,7 +243,7 @@ void Audio::changeMusicFilter() {
                 pitchf = std::pow(.9438f, std::abs(tempoChange + pitchCount));
             }
 
-            std::cout << "pitchf: " << pitchf << std::endl;
+            std::cout << "Pitch: " << pitchf << std::endl;
             std::cout << "Frequency: " << newTempo << std::endl;
 
             result = musicChannel->removeDSP(dsppitch);
@@ -265,7 +269,8 @@ void Audio::changeMusicFilter() {
             std::cout << "Pitch Count: " << pitchCount << std::endl;
             std::cout << "Tempo Count: " << tempoChange << std::endl;
 
-            musicChannel->getFrequency(&frequency);
+            result = musicChannel->getFrequency(&frequency);
+            FMOD_ERROR(result);
             std::cout << "Z Initial Frequency: " << frequency << std::endl;
 
             float base = 2.0f;
@@ -282,7 +287,7 @@ void Audio::changeMusicFilter() {
                 pitchf = std::pow(.9438f, std::abs(tempoChange + pitchCount));
             }
 
-            std::cout << "pitchf: " << pitchf << std::endl;
+            std::cout << "Pitch: " << pitchf << std::endl;
             std::cout << "Frequency: " << newTempo << std::endl;
 
             result = musicChannel->removeDSP(dsppitch);
@@ -291,7 +296,8 @@ void Audio::changeMusicFilter() {
             result = musicChannel->addDSP(0, dsppitch);
             FMOD_ERROR(result);
 
-            musicChannel->setFrequency(newTempo);
+            result = musicChannel->setFrequency(newTempo);
+            FMOD_ERROR(result);
 
             result = dsppitch->setParameterFloat(FMOD_DSP_PITCHSHIFT_PITCH, pitchf);
             FMOD_ERROR(result);
@@ -299,6 +305,12 @@ void Audio::changeMusicFilter() {
         } else {
             std::cout << "Reached Max Tempo" << std::endl;
         }
+    }
+    else if (Input::GetKeyDown(GLFW_KEY_6)) {
+        toggleMusicStream();
+    }
+    else if (Input::GetKeyDown(GLFW_KEY_7)) {
+        toggleSound();
     }
     else if (Input::GetKeyDown(GLFW_KEY_KP_ADD)) {
         filterValue += 0.1f;
@@ -316,23 +328,27 @@ void Audio::changeMusicFilter() {
     }
     else if (Input::GetKeyDown(GLFW_KEY_EQUAL)) {
         //	Increment Volume
-        musicChannel->getVolume(&volume);
+        result = musicChannel->getVolume(&volume);
+        FMOD_ERROR(result);
         volume += 0.1f;
         if (volume > 1) {
             volume = 1;
         }
         std::cout << "Volume: " << volume << std::endl;
-        musicChannel->setVolume(volume);
+        result = musicChannel->setVolume(volume);
+        FMOD_ERROR(result);
     }
     else if (Input::GetKeyDown(GLFW_KEY_MINUS)) {
         //	Decrement Volume
-        musicChannel->getVolume(&volume);
+        result = musicChannel->getVolume(&volume);
+        FMOD_ERROR(result);
         volume -= 0.1f;
         if (volume < 0) {
             volume = 0;
         }
         std::cout << "Volume: " << volume << std::endl;
-        musicChannel->setVolume(volume);
+        result = musicChannel->setVolume(volume);
+        FMOD_ERROR(result);
     }
     else if (Input::GetKeyDown(GLFW_KEY_LEFT_BRACKET)) {
         // Pan Left
@@ -341,7 +357,8 @@ void Audio::changeMusicFilter() {
             pan = -1;
         }
         std::cout << "Pan: " << pan << std::endl;
-        musicChannel->setPan(pan);
+        result = musicChannel->setPan(pan);
+        FMOD_ERROR(result);
     }
     else if (Input::GetKeyDown(GLFW_KEY_RIGHT_BRACKET)) {
         //	Pan Right
@@ -350,7 +367,8 @@ void Audio::changeMusicFilter() {
             pan = 1;
         }
         std::cout << "Pan: " << pan << std::endl;
-        musicChannel->setPan(pan);
+        result = musicChannel->setPan(pan);
+        FMOD_ERROR(result);
     }
     else if (Input::GetKeyDown(GLFW_KEY_N)) {
         //	Decremental Pitch
@@ -527,4 +545,33 @@ void Audio::changeMusicFilter() {
 
         std::cout << "Custom Filter: " << (customActive ? "ON" : "OFF") << std::endl;
     }
+
+    return true;
+}
+
+bool Audio::createGeometry(const glm::vec2& extent, const glm::vec3& position, const glm::quat& rotation) {
+    // Create geometry to occlusion
+    auto result = system->createGeometry(2, 6, &geometry);
+    FMOD_ERROR(result);
+
+    FMOD_VECTOR quad[4] = {
+        { -extent.x, -extent.y, 0 },
+        { -extent.x,  extent.y, 0 },
+        { extent.x,  extent.y, 0 },
+        { extent.x, -extent.y, 0 }
+    };
+
+    // Add polygon to object geometry
+    int index = 0;
+    result = geometry->addPolygon(1, 1, true, 4, quad, &index);
+    FMOD_ERROR(result);
+
+    // Using to position object geometry
+    result = geometry->setPosition(glm::fmod_vector(position));
+    FMOD_ERROR(result);
+    // Using to rotation object geometry
+    result = geometry->setRotation(glm::fmod_vector(rotation * vec3::forward), glm::fmod_vector(rotation * vec3::up));
+    FMOD_ERROR(result);
+
+    return true;
 }
