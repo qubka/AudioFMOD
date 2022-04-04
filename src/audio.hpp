@@ -3,6 +3,10 @@
 #include <fmod.hpp>
 #include <fmod_errors.h>
 
+struct DSPUserdata {
+    float volume;
+};
+
 class Audio {
 public:
     Audio();
@@ -21,8 +25,6 @@ public:
     bool createGeometry(const glm::vec2& extent, const glm::vec3& position, const glm::quat& rotation);
 
     void update(const glm::vec3& position, const glm::vec3& velocity, const glm::vec3& forward, const glm::vec3& up);
-
-    static float filterValue;
 
 private:
     FMOD::System* system;
@@ -54,7 +56,7 @@ private:
     bool parameqActive{ false };
     bool customActive{ false };
 
-    //float filterValue{ 0.0f };
+    DSPUserdata data{ 0.5f };
     float pan{ 0.0f };
     float volume;
     float frequency;

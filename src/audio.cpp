@@ -5,8 +5,6 @@
 #define FMOD_ERROR_(result) if (result != FMOD_OK) { std::cerr << "***ERROR*** (" << __FILE__ << ": " << __LINE__ << ") " << FMOD_ErrorString(result) << std::endl; return; }
 #define FMOD_ERROR(result) if (result != FMOD_OK) { std::cerr << "***ERROR*** (" << __FILE__ << ": " << __LINE__ << ") " << FMOD_ErrorString(result) << std::endl; return false; }
 
-float Audio::filterValue{ 0.0f };
-
 Audio::Audio() {
     // Create an FMOD system
     auto result = FMOD::System_Create(&system);
@@ -80,23 +78,12 @@ bool Audio::setSoundPositionAndVelocity(const glm::vec3& position, const glm::ve
 }
 
 FMOD_RESULT F_CALLBACK DSPCallback(FMOD_DSP_STATE* dsp_state, float* inbuffer, float* outbuffer, unsigned int length, int inchannels, int* outchannels) {
-    //auto dsp = reinterpret_cast<FMOD::DSP *>(dsp_state->instance);
+    auto thisdsp = (FMOD::DSP *)dsp_state->instance;
 
-    /*
-        This redundant call just shows using the instance parameter of FMOD_DSP_STATE to
-        call a DSP information function.
-    */
-    /*float filterValue;
-    auto result = dsp->getUserData(reinterpret_cast<void **>(&filterValue));
-    FMOD_ERROR(result);*/
+    void* ud;
+    thisdsp->getUserData(&ud);
 
-    /*
-        This loop assumes inchannels = outchannels, which it will be if the DSP is created with '0'
-        as the number of channels in FMOD_DSP_DESCRIPTION.
-        Specifying an actual channel count will mean you have to take care of any number of channels coming in,
-        but outputting the number of channels specified. Generally it is best to keep the channel
-        count at 0 for maximum compatibility.
-    */
+    auto dud = static_cast<DSPUserdata*>(ud);
 
     for (unsigned int samp = 0; samp < length; samp++) {
         /*
@@ -107,7 +94,7 @@ FMOD_RESULT F_CALLBACK DSPCallback(FMOD_DSP_STATE* dsp_state, float* inbuffer, f
                 This DSP filter just halves the volume!
                 Input is modified by filter value, and sent to output.
             */
-            outbuffer[(samp * *outchannels) + chan] = inbuffer[(samp * inchannels) + chan] * Audio::filterValue;
+            outbuffer[(samp * *outchannels) + chan] = inbuffer[(samp * inchannels) + chan] * dud->volume;
         }
     }
 
@@ -145,7 +132,7 @@ bool Audio::loadMusicStream(const std::string& filename) {
     dspdesc.numinputbuffers = 1;
     dspdesc.numoutputbuffers = 1;
     dspdesc.read = DSPCallback;
-    //dspdesc.userdata = &filterValue; // TODO: not work!
+    dspdesc.userdata = &data;
 
     result = system->createDSP(&dspdesc, &dspcustom);
     FMOD_ERROR(result);
@@ -313,18 +300,18 @@ bool Audio::changeMusicFilter() {
         toggleSound();
     }
     else if (Input::GetKeyDown(GLFW_KEY_KP_ADD)) {
-        filterValue += 0.1f;
-        if (filterValue > 2) {
-            filterValue = 2;
+        data.volume += 0.1f;
+        if (data.volume > 2) {
+            data.volume = 2;
         }
-        std::cout << "Filter Power: " << filterValue << std::endl;
+        std::cout << "Filter Power: " << data.volume << std::endl;
     }
     else if (Input::GetKeyDown(GLFW_KEY_KP_SUBTRACT)) {
-        filterValue -= 0.1f;
-        if (filterValue < 0) {
-            filterValue = 0;
+        data.volume -= 0.1f;
+        if (data.volume < 0) {
+            data.volume = 0;
         }
-        std::cout << "Filter Power: " << filterValue << std::endl;
+        std::cout << "Filter Power: " << data.volume << std::endl;
     }
     else if (Input::GetKeyDown(GLFW_KEY_EQUAL)) {
         //	Increment Volume
