@@ -18,6 +18,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${OPENGL_INCLUDE_DIR}
 )
 
+find_library(FREETYPE_LIBRARY
+            NAMES
+            freetype
+            PATHS
+            "external/freetype_binary/dynamic/win64"
+)
+include_directories(external/freetype_binary/include)
 find_library(
         FMOD_LIBRARY
         NAMES
@@ -43,7 +50,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         stb
         entt
         magic_enum
-        freetype
+        #freetype
+        ${FREETYPE_LIBRARY}
 
         # dynamic link
         OpenGL::GL
@@ -52,3 +60,5 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 )
 
 target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_FILES})
+
+add_compile_definitions(_USE_MATH_DEFINES)

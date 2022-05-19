@@ -24,7 +24,7 @@ private:
 class FontFace {
 public:
     FontFace() = delete;
-    FontFace(const FontLibrary& library, const std::string& path) : name{std::filesystem::path{path}.filename().root_name()} {
+    FontFace(const FontLibrary& library, const std::string& path) : name{std::filesystem::path{path}.filename().root_name().string()} {
         assert(std::filesystem::exists(path) && "Could not load file");
         if (FT_New_Face(library, path.c_str(), 0, &face)) {
             std::cerr << "ERROR: Failed to load font: " << path << std::endl;

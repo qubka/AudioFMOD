@@ -1,17 +1,17 @@
 #pragma once
 
-#include <assimp/types.h>
+//#include <assimp/types.h>
 
 class FMOD_VECTOR;
 
 namespace glm {
-    GLM_INLINE glm::vec3 vec3_cast(const aiVector3D& v) { return {v.x, v.y, v.z}; }
+    /*/GLM_INLINE glm::vec3 vec3_cast(const aiVector3D& v) { return {v.x, v.y, v.z}; }
     GLM_INLINE glm::vec3 vec3_cast(const aiColor3D& c) { return {c.r, c.g, c.b}; }
     GLM_INLINE glm::vec2 vec2_cast(const aiVector3D& v) { return {v.x, v.y}; }
     GLM_INLINE glm::quat quat_cast(const aiQuaternion& q) { return {q.w, q.x, q.y, q.z}; }
     GLM_INLINE glm::mat4 mat4_cast(const aiMatrix4x4& m) { return glm::transpose(glm::make_mat4(&m.a1)); }
     GLM_INLINE glm::mat4 mat4_cast(const aiMatrix3x3& m) { return glm::transpose(glm::make_mat3(&m.a1)); }
-
+    */
     GLM_INLINE const FMOD_VECTOR* fmod_vector(const glm::vec3& v) { return reinterpret_cast<const FMOD_VECTOR*>(&v); }
 }
 

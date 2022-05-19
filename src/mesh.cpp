@@ -3,7 +3,7 @@
 #include "texture.hpp"
 #include "opengl.hpp"
 
-#include <assimp/material.h>
+//#include <assimp/material.h>
 
 Mesh::Mesh(std::vector<Vertex>&& vertices, GLenum mode)
     : vertices{std::move(vertices)}
@@ -98,16 +98,16 @@ void Mesh::render(const std::unique_ptr<Shader>& shader) const {
 
         std::string name;
         switch (texture->getType()) {
-            case aiTextureType_DIFFUSE:
+            case 1:
                 name = "diffuse" + std::to_string(diffuseIdx++);
                 break;
-            case aiTextureType_SPECULAR:
+            case 2:
                 name = "specular" + std::to_string(specularIdx++);
                 break;
-            case aiTextureType_HEIGHT:
+            case 5:
                 name = "height" + std::to_string(heightIdx++);
                 break;
-            case aiTextureType_AMBIENT:
+            case 3:
                 name = "ambient" + std::to_string(ambientIdx++);
                 break;
             default:

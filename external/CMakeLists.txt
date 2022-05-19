@@ -79,7 +79,7 @@ target_include_directories(${MAGIC_ENUM_LIB_NAME}
 
 
 # freetype
-set(FREETYPE_LIB_NAME "freetype")
-set(FREETYPE_INC_PATH ${FREETYPE_LIB_NAME}/include)
+#set(FREETYPE_LIB_NAME "freetype")
+#set(FREETYPE_INC_PATH ${FREETYPE_LIB_NAME}/include)
 
-add_subdirectory(${FREETYPE_LIB_NAME})
+#add_subdirectory(${FREETYPE_LIB_NAME})

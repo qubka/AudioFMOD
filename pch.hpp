@@ -33,8 +33,8 @@
 #include <GLFW/glfw3.h>
 
 // OPENAL
-#include <AL/al.h>
-#include <AL/alc.h>
+//#include <AL/al.h>
+//#include <AL/alc.h>
 
 // GLM
 #include <glm/glm.hpp>
